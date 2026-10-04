@@ -23,12 +23,28 @@
     .stats b { display: block; font-size: 1rem; color: #212529; }
     details { margin-top: 16px; }
     summary { cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #495057; }
+    button { width: 100%; padding: 8px 10px; border: 1px solid #0d6efd; background: #0d6efd; color: #fff; border-radius: 6px; font-size: 0.95rem; cursor: pointer; }
+    button.secondary { background: #fff; color: #0d6efd; }
+    .btns { display: flex; gap: 8px; }
     .note { font-size: 0.75rem; color: #6c757d; margin-top: 12px; line-height: 1.4; }
   </style>
 </head>
 <body>
 <div class="card">
   <h2>Lotus Drops Calculator</h2>
+
+  <h3>Saved recipes</h3>
+  <div class="grid">
+    <select id="saved"><option value="">Select a saved recipe</option></select>
+    <div class="btns">
+      <button type="button" onclick="loadRecipe()">Load</button>
+      <button type="button" class="secondary" onclick="deleteRecipe()">Delete</button>
+    </div>
+  </div>
+  <div class="grid">
+    <input type="text" id="recipeName" placeholder="Recipe name">
+    <button type="button" onclick="saveRecipe()">Save current settings</button>
+  </div>
 
   <div class="grid">
     <div>
@@ -157,6 +173,57 @@ function calculate() {
   $('hco3').innerText = hco3.toFixed(1);
   $('ratio').innerText = gh > 0 ? Math.round(caGH / gh * 100) + ' : ' + Math.round(mgGH / gh * 100) : '–';
 }
+// ---- Saved recipes (stored in this browser only) ----
+const FIELDS = ['vol','unit','startTds','mg','ca','na','k','pMg','pCa','pNa','pK'];
+const STORE_KEY = 'lotusRecipes';
+
+function readStore() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; }
+}
+function writeStore(obj) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(obj)); return true; }
+  catch (e) { alert('Could not save: browser storage is unavailable.'); return false; }
+}
+function refreshList(selectName) {
+  const sel = $('saved');
+  sel.innerHTML = '';
+  const first = document.createElement('option');
+  first.value = ''; first.textContent = 'Select a saved recipe';
+  sel.appendChild(first);
+  Object.keys(readStore()).sort().forEach(name => {
+    const o = document.createElement('option');
+    o.value = name; o.textContent = name;
+    sel.appendChild(o);
+  });
+  if (selectName) sel.value = selectName;
+}
+function saveRecipe() {
+  const name = $('recipeName').value.trim();
+  if (!name) { alert('Enter a recipe name first.'); return; }
+  const store = readStore();
+  if (store[name] && !confirm('Overwrite the saved recipe "' + name + '"?')) return;
+  const data = {};
+  FIELDS.forEach(id => data[id] = $(id).value);
+  store[name] = data;
+  if (writeStore(store)) refreshList(name);
+}
+function loadRecipe() {
+  const name = $('saved').value;
+  const data = readStore()[name];
+  if (!data) return;
+  FIELDS.forEach(id => { if (data[id] !== undefined) $(id).value = data[id]; });
+  $('recipeName').value = name;
+  calculate();
+}
+function deleteRecipe() {
+  const name = $('saved').value;
+  if (!name || !confirm('Delete the saved recipe "' + name + '"?')) return;
+  const store = readStore();
+  delete store[name];
+  if (writeStore(store)) refreshList();
+}
+
+refreshList();
 calculate();
 </script>
 </body>
