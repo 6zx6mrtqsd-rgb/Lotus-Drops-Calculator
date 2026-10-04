@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lotus Drops Calculator</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 550px; margin: 20px auto; padding: 20px; background: #f8f9fa; color: #212529; }
+    .card { background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    h2 { margin-top: 0; color: #1a1a1a; font-size: 1.35rem; }
+    h3 { font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; color: #343a40; margin: 20px 0 8px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    label { font-size: 0.85rem; font-weight: 600; color: #495057; display: block; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 8px 10px; border: 1px solid #ced4da; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; }
+    .results { background: #eef2f5; padding: 16px; border-radius: 8px; margin-top: 20px; }
+    .results h3 { margin-top: 0; }
+    .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #dee2e6; font-size: 0.95rem; }
+    .row:last-child { border-bottom: none; }
+    .val { font-weight: 700; color: #0d6efd; text-align: right; }
+    .sub { font-weight: 400; color: #6c757d; font-size: 0.8rem; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; font-size: 0.85rem; }
+    .stats div { background: #fff; border-radius: 6px; padding: 8px; text-align: center; }
+    .stats b { display: block; font-size: 1rem; color: #212529; }
+    details { margin-top: 16px; }
+    summary { cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #495057; }
+    .note { font-size: 0.75rem; color: #6c757d; margin-top: 12px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h2>Lotus Drops Calculator</h2>
+
+  <div class="grid">
+    <div>
+      <label>Water Volume</label>
+      <input type="number" id="vol" value="1000" min="0" step="any" oninput="calculate()">
+    </div>
+    <div>
+      <label>Units</label>
+      <select id="unit" onchange="calculate()">
+        <option value="1">g / mL</option>
+        <option value="1000">Litres</option>
+        <option value="3785.41">US gallons</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <label>Starting TDS (ppm)</label>
+      <input type="number" id="startTds" value="0" min="0" step="any" oninput="calculate()">
+    </div>
+  </div>
+
+  <h3>Target ions (mg/L as the ion)</h3>
+  <div class="grid">
+    <div><label>Magnesium (Mg)</label><input type="number" id="mg" value="0" min="0" step="any" oninput="calculate()"></div>
+    <div><label>Calcium (Ca)</label><input type="number" id="ca" value="0" min="0" step="any" oninput="calculate()"></div>
+    <div><label>Sodium (Na)</label><input type="number" id="na" value="0" min="0" step="any" oninput="calculate()"></div>
+    <div><label>Potassium (K)</label><input type="number" id="k" value="0" min="0" step="any" oninput="calculate()"></div>
+  </div>
+
+  <details>
+    <summary>Calibration (optional)</summary>
+    <h3>Drop strength: mg/L added by 1 drop in 1 L (round dropper)</h3>
+    <div class="grid">
+      <div><label>Mg</label><input type="number" id="pMg" value="1.125" min="0.001" step="any" oninput="calculate()"></div>
+      <div><label>Ca</label><input type="number" id="pCa" value="0.9" min="0.001" step="any" oninput="calculate()"></div>
+      <div><label>Na</label><input type="number" id="pNa" value="3" min="0.001" step="any" oninput="calculate()"></div>
+      <div><label>K</label><input type="number" id="pK" value="4.05" min="0.001" step="any" oninput="calculate()"></div>
+    </div>
+  </details>
+
+  <div class="results">
+    <h3>Required Lotus drops</h3>
+    <div class="row"><span>Magnesium (MgCl₂)</span><span class="val" id="mgDrops"></span></div>
+    <div class="row"><span>Calcium (CaCl₂)</span><span class="val" id="caDrops"></span></div>
+    <div class="row"><span>Sodium (NaHCO₃)</span><span class="val" id="naDrops"></span></div>
+    <div class="row"><span>Potassium (KHCO₃)</span><span class="val" id="kDrops"></span></div>
+
+    <div class="stats">
+      <div>GH<b id="gh">0</b>ppm CaCO₃</div>
+      <div>KH<b id="kh">0</b>ppm CaCO₃</div>
+      <div>Total<b id="tot">0</b>mg/L ions</div>
+    </div>
+    <div class="stats">
+      <div>Cl⁻<b id="cl">0</b>mg/L</div>
+      <div>HCO₃⁻<b id="hco3">0</b>mg/L</div>
+      <div>Ca : Mg<b id="ratio">–</b>by GH</div>
+    </div>
+  </div>
+
+  <div class="note">
+    Enter the recipe's Mg / Ca / Na / K values directly. Drops = ppm &times; litres &divide; (mg/L added per drop per litre).
+    The drop-strength defaults were back-solved from a single Lotus calculator result (round dropper, 900 mL), so they are
+    estimates (whole-drop rounding leaves roughly &plusmn;10&ndash;40% uncertainty, most for Na and K). Refine them by
+    running a large volume on the Lotus page. Starting TDS is treated as ~50% GH / 50% KH and subtracted from the target GH and KH,
+    keeping the Ca/Mg and K/Na ratios. Leave it at 0 for distilled or RO water.
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const num = id => Math.max(0, parseFloat($(id).value) || 0);
+
+// mg/L of ion -> ppm as CaCO3 (equivalents basis)
+const EQ = { ca: 2.497, mg: 4.118, k: 50.04 / 39.098, na: 50.04 / 22.99 };
+
+function fmt(drops) {
+  return drops.toFixed(1) + ' drops <span class="sub">(' + Math.round(drops) + ')</span>';
+}
+
+function calculate() {
+  const W = num('vol') * parseFloat($('unit').value);   // grams of water
+  const p = { mg: num('pMg') || 1, ca: num('pCa') || 1, na: num('pNa') || 1, k: num('pK') || 1 }; // mg/L per drop per litre
+
+  const target = { mg: num('mg'), ca: num('ca'), na: num('na'), k: num('k') };
+  const tds = num('startTds');
+
+  // Target hardness / alkalinity (ppm as CaCO3)
+  const caGH = target.ca * EQ.ca, mgGH = target.mg * EQ.mg;
+  const targetGh = caGH + mgGH;
+  const targetKh = target.k * EQ.k + target.na * EQ.na;
+
+  // Background minerals offset: starting TDS assumed ~50% GH / 50% KH
+  const netGh = Math.max(0, targetGh - tds * 0.5);
+  const netKh = Math.max(0, targetKh - tds * 0.5);
+
+  // Scale each pair down proportionally so the recipe's ratios are kept
+  const ghScale = targetGh > 0 ? netGh / targetGh : 0;
+  const khScale = targetKh > 0 ? netKh / targetKh : 0;
+
+  // Net ion ppm to add (target ions scaled by the TDS offset), then drops = ppm * litres / (ppm per drop per litre)
+  const L = W / 1000;
+  const drops = {
+    ca: (target.ca * ghScale * L) / p.ca,
+    mg: (target.mg * ghScale * L) / p.mg,
+    k:  (target.k  * khScale * L) / p.k,
+    na: (target.na * khScale * L) / p.na
+  };
+
+  $('mgDrops').innerHTML = fmt(drops.mg);
+  $('caDrops').innerHTML = fmt(drops.ca);
+  $('naDrops').innerHTML = fmt(drops.na);
+  $('kDrops').innerHTML  = fmt(drops.k);
+
+  // Recipe totals (target water, including any background minerals)
+  const gh = targetGh;
+  const kh = targetKh;
+  const cl = target.ca * 2 * 35.453 / 40.078 + target.mg * 2 * 35.453 / 24.305;
+  const hco3 = (target.k / 39.098 + target.na / 22.99) * 61.017;
+
+  $('gh').innerText = gh.toFixed(1);
+  $('kh').innerText = kh.toFixed(1);
+  $('tot').innerText = (target.mg + target.ca + target.na + target.k + cl + hco3).toFixed(0);
+  $('cl').innerText = cl.toFixed(1);
+  $('hco3').innerText = hco3.toFixed(1);
+  $('ratio').innerText = gh > 0 ? Math.round(caGH / gh * 100) + ' : ' + Math.round(mgGH / gh * 100) : '–';
+}
+calculate();
+</script>
+</body>
+</html>
