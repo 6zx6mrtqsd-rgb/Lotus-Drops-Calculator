@@ -94,6 +94,8 @@
     <div class="row"><span>Sodium (NaHCO₃)</span><span class="val" id="naDrops"></span></div>
     <div class="row"><span>Potassium (KHCO₃)</span><span class="val" id="kDrops"></span></div>
 
+    <div class="note" id="batchHint" style="color:#495057"></div>
+
     <div class="stats">
       <div>GH<b id="gh">0</b>ppm CaCO₃</div>
       <div>KH<b id="kh">0</b>ppm CaCO₃</div>
@@ -122,8 +124,10 @@ const num = id => Math.max(0, parseFloat($(id).value) || 0);
 // mg/L of ion -> ppm as CaCO3 (equivalents basis)
 const EQ = { ca: 2.497, mg: 4.118, k: 50.04 / 39.098, na: 50.04 / 22.99 };
 
-function fmt(drops) {
-  return drops.toFixed(1) + ' drops <span class="sub">(' + Math.round(drops) + ')</span>';
+function fmt(d, perL, L) {
+  const whole = Math.round(d);
+  const adds = L > 0 ? (whole * perL / L).toFixed(1) : '0.0';
+  return d.toFixed(1) + ' drops <span class="sub">(' + whole + ' = adds ' + adds + ' mg/L)</span>';
 }
 
 function calculate() {
@@ -155,10 +159,24 @@ function calculate() {
     na: (target.na * khScale * L) / p.na
   };
 
-  $('mgDrops').innerHTML = fmt(drops.mg);
-  $('caDrops').innerHTML = fmt(drops.ca);
-  $('naDrops').innerHTML = fmt(drops.na);
-  $('kDrops').innerHTML  = fmt(drops.k);
+  $('mgDrops').innerHTML = fmt(drops.mg, p.mg, L);
+  $('caDrops').innerHTML = fmt(drops.ca, p.ca, L);
+  $('naDrops').innerHTML = fmt(drops.na, p.na, L);
+  $('kDrops').innerHTML  = fmt(drops.k, p.k, L);
+
+  // Smallest batch where every ion needed is at least 1 drop
+  const needed = Object.values(drops).filter(v => v > 0.0001);
+  const minDrops = needed.length ? Math.min(...needed) : 0;
+  const hint = $('batchHint');
+  if (!needed.length) {
+    hint.innerText = '';
+  } else if (minDrops < 1) {
+    const batch = Math.ceil(W / minDrops / 10) * 10;
+    hint.innerText = 'The smallest ion is under 1 drop (' + minDrops.toFixed(2) + '). For at least 1 drop of every ion, make about ' +
+      batch + ' g, or round the small ones and accept the ppm shown.';
+  } else {
+    hint.innerText = 'Every ion needed is at least 1 drop.';
+  }
 
   // Recipe totals (target water, including any background minerals)
   const gh = targetGh;
